@@ -4,15 +4,15 @@ from src.data_loader import get_shared_data
 from src.visualizations import create_timeseries_chart, create_pattern_analysis_chart
 from src.analyzer import detect_time_patterns, get_time_aggregations
 
-st.set_page_config(page_title="Time Series Analysis", layout="wide", page_icon="📈")
+st.set_page_config(page_title="Time Series Analysis", layout="wide")
 
-st.title("📈 Time Series Analysis")
+st.title("Time Series Analysis")
 
 # Get shared data
 df = get_shared_data()
 
 if df is None:
-    st.info("👈 Upload a CSV file from the Home page to get started")
+    st.info(" Upload a CSV file from the Home page to get started")
     st.stop()
 
 # Detect datetime columns
@@ -25,13 +25,14 @@ for col in df.columns:
             pd.to_datetime(df[col], errors='coerce')
             if pd.to_datetime(df[col], errors='coerce').notna().sum() > len(df) * 0.5:
                 potential_datetime_cols.append(col)
+                
         except:
             pass
 
 all_time_cols = datetime_cols + potential_datetime_cols
 
 if not all_time_cols:
-    st.warning("⚠️ No datetime columns detected in the dataset. This page is designed for time-series data.")
+    st.warning(" No datetime columns detected in the dataset. This page is designed for time-series data.")
     st.info("**Tip**: Ensure your dataset has a column with dates/timestamps. The column should be in a recognizable date format (e.g., YYYY-MM-DD, MM/DD/YYYY, etc.)")
     st.stop()
 
