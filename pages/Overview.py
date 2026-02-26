@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-from src.data_loader import load_data, get_shared_data, set_shared_data
+from src.data_loader import get_shared_data
 from src.visualizations import create_distribution_chart, create_correlation_heatmap
-from src.analyzer import get_descriptive_stats, get_data_quality_report
+from src.analyzer import get_descriptive_stats
 
 st.set_page_config(page_title="Overview", layout="wide", page_icon="📊")
 

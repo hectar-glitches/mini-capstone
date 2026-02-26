@@ -1,45 +1,57 @@
 import pandas as pd
 import streamlit as st
+from src.data_fetcher import fetch_data
 
 
 # Global data store using session state
-def set_shared_data(df):
-    """Store dataframe in session state for multi-page access."""
+def set_shared_data():
+    """
+    Store dataframe in session state for multi-page access.
+    
+    Args: None
+    Returns: None
+    """
+    df = load_data()
     st.session_state['shared_df'] = df
 
 
 def get_shared_data():
-    """Retrieve dataframe from session state."""
+    """
+    Retrieve dataframe from session state.
+    
+    Args: None
+    Returns: Shared DataFrame
+    """
     return st.session_state.get('shared_df', None)
 
 
 @st.cache_data
-def load_data(file):
-    """Load and cache data from uploaded file."""
+def load_data():
+    """
+    Load and cache data from uploaded file.
+    
+    Args: None
+    Returns: DataFrame for session use
+    """
     try:
+        file = fetch_data()  # Fetch data from the source (e.g., TEPCO website)
         df = pd.read_csv(file, encoding="utf-8-sig", skiprows=1)
         
         # Auto-detect and convert datetime columns first
         for col in df.columns:
             # Try to convert to datetime if column name suggests it's a date
             if any(keyword in col.lower() for keyword in ['date', 'time', 'timestamp', 'datetime']):
-                try:
-                    df[col] = pd.to_datetime(df[col], errors='coerce')
-                except:
-                    pass
+                df[col] = pd.to_datetime(df[col], errors='coerce')
         
         # Try to convert numeric columns (force conversion, coerce errors to NaN)
         for col in df.columns:
             # Skip if already datetime
             if df[col].dtype != 'datetime64[ns]':
-                try:
-                    # Try converting to numeric, coerce non-numeric to NaN
-                    converted = pd.to_numeric(df[col], errors='coerce')
-                    # Only keep conversion if at least some values are numeric
-                    if converted.notna().sum() > 0:
-                        df[col] = converted
-                except:
-                    pass
+                # Try converting to numeric, coerce non-numeric to NaN
+                converted = pd.to_numeric(df[col], errors='coerce')
+                # Only keep conversion if at least some values are numeric
+                if converted.notna().sum() > 0:
+                    df[col] = converted
     
         # Optional: Rename Japanese columns to English (only if they exist)
         rename_map = {
@@ -76,8 +88,15 @@ def load_data(file):
         return None
 
 
-def get_data_info(df):
-    """Get basic information about the dataset."""
+def get_data_info():
+    """
+    Get basic information about the dataset.
+    
+    Args: None
+    Returns: Overview of the DataFrame
+    """
+
+    df = get_shared_data()
     if df is None:
         return None
     
