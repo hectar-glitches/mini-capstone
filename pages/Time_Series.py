@@ -150,10 +150,10 @@ if value_cols:
         st.metric("Time Span", f"{(df_filtered[time_col].max() - df_filtered[time_col].min()).days} days")
     with col3:
         if value_cols:
-            st.metric("Avg Value", f"{df_filtered[value_cols[0]].mean():.2f}")
+            st.metric("Avg Value", f"{df_filtered[value_cols[0]].mean()/1000:.2f}MW")
     with col4:
         if value_cols:
-            st.metric("Total", f"{df_filtered[value_cols[0]].sum():.2f}")
+            st.metric("Total", f"{df_filtered[value_cols[0]].sum()/1000000:.2f}GW")
 
 else:
     st.info("Please select at least one value column to plot")
