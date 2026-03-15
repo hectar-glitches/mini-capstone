@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from src.data_loader import (
-    load_data, set_shared_data, get_shared_data, get_data_info
+    fetch_data, load_data, set_shared_data, get_shared_data, get_data_info
 )
 
 st.set_page_config(
@@ -11,31 +11,50 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("Data Analyzer Dashboard")
-st.markdown("### A comprehensive tool for exploring and analyzing CSV data")
+st.title("Tokyo Power Consumption Analyzer")
+st.markdown("### Note where your power is coming from!")
 
 # Sidebar
 with st.sidebar:
-    st.header("Data Upload")
-    uploaded_file = st.file_uploader("Upload CSV file", type=['csv'])
+    st.header("Data Source")
+
+    data_source = st.radio(
+        "Choose data source",
+        ["Fetch TEPCO data", "Upload CSV file"]
+    )
+
+    if data_source == "Upload CSV file":
+        uploaded_file = st.file_uploader("Upload CSV file", type=['csv'])
     
-    if uploaded_file:
-        # Load and cache data
-        df = load_data(uploaded_file)
-        
-        if df is not None:
-            # Store in session state for multi-page access
-            set_shared_data(df)
-            
-            st.success(" File loaded successfully!")
-            
+        if uploaded_file:
+            # Load and cache data
+            df = load_data(uploaded_file)
+            # Store in session data
+            set_shared_data()
+
+            st.success("File loaded successfully!")
+
             # Show basic info
-            info = get_data_info(df)
+            info = get_data_info()
             st.metric("Rows", f"{info['rows']:,}")
             st.metric("Columns", info['columns'])
             st.metric("Size", f"{info['memory_mb']:.2f} MB")
+    
     else:
-        st.info("Upload a CSV file to begin analysis")
+        if st.button("Fetch Latest TEPCO data"):
+            file_like = fetch_data()
+            if file_like is not None:
+                df = load_data()
+                # Store in session state for multi-page access
+                set_shared_data()
+                
+                st.success(" File loaded successfully!")
+            
+            # Show basic info
+            info = get_data_info()
+            st.metric("Rows", f"{info['rows']:,}")
+            st.metric("Columns", info['columns'])
+            st.metric("Size", f"{info['memory_mb']:.2f} MB")
 
 # Main content
 df = get_shared_data()
@@ -48,7 +67,7 @@ if df is not None:
     
     col1, col2, col3, col4 = st.columns(4)
     
-    info = get_data_info(df)
+    info = get_data_info()
     
     with col1:
         st.metric("Total Rows", f"{info['rows']:,}")

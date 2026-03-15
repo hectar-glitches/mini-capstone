@@ -88,6 +88,39 @@ def load_data():
         return None
 
 
+def time_now_for_display():
+    """
+    Get the data for the previous month for 'live-display' mockup.
+    
+    Args:
+    None
+    Returns:
+    String representing the previous month in "YYYY-MM" format
+    """
+    now = pd.Timestamp.now()
+    previous_month = now - pd.DateOffset(months=1)
+    return previous_month.strftime("%Y-%m")
+
+
+def get_time_from_df():
+    """
+    Function to filter the DataFrame for the previous month (for 'live-display' mockup).
+    
+    Args:
+    None
+    Returns:
+    DataFrame containing the data for the past 24 hours
+    """
+    df = get_shared_data()
+    if df is None:
+        return None
+    
+    display_time = time_now_for_display()
+    filtered_df = df[df['date'].dt.strftime("%Y-%m") == display_time]
+    
+    return filtered_df
+    
+
 def get_data_info():
     """
     Get basic information about the dataset.
@@ -108,3 +141,33 @@ def get_data_info():
         'object_cols': len(df.select_dtypes(include=['object']).columns),
         'memory_mb': df.memory_usage(deep=True).sum() / 1024**2
     }
+
+
+def percentages():
+    """
+    Calculates the percentage of each power source for a time period
+    
+    Keyword arguments:
+    df -- DataFrame containing power source data
+    Return: DataFrame with percentage of each power source
+    """
+    df = get_shared_data()
+    if df is None:
+        return None
+    
+    percentage_df = df.copy()
+    numeric_cols = df.select_dtypes(include=['number']).columns
+    for col in numeric_cols:
+        percentage_df[col] = df[col] / df[numeric_cols].sum(axis=1) * 100
+    
+    return percentage_df
+
+
+def calculate_renewable_percentage():
+    """
+    Calculates the percentage of renewable energy sources in the total supply
+    
+    Keyword arguments:
+    df -- DataFrame containing power source data
+    Return: Percentage of renewable energy sources
+    """
