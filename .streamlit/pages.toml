@@ -1,0 +1,7 @@
+[[pages]]
+path = "app.py"
+name = "Home"
+
+[[pages]]
+path = "Time_Series.py"
+name = "Time Series Analysis"

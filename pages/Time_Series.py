@@ -26,8 +26,8 @@ for col in df.columns:
             if pd.to_datetime(df[col], errors='coerce').notna().sum() > len(df) * 0.5:
                 potential_datetime_cols.append(col)
                 
-        except:
-            pass
+        except Exception:
+            raise ValueError(f"Error processing column {col} for datetime conversion")
 
 all_time_cols = datetime_cols + potential_datetime_cols
 
