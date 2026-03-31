@@ -1,16 +1,16 @@
-# 📊 Data Analyzer Dashboard
+# Data Analyzer Dashboard
 
 A comprehensive, multi-page Streamlit dashboard for exploring, analyzing, and visualizing CSV data. Built with extensibility in mind for domain-specific adaptations (e.g., TEPCO electricity data).
 
-## ✨ Features
+## Features
 
-### 🏠 Home Page
+### Home Page
 - **File Upload**: Drag-and-drop CSV upload with automatic caching
 - **Quick Overview**: Instant data preview and column information
 - **Quick Visualization**: Interactive scatter plots or histograms
 - **Data Info**: Row counts, column types, memory usage
 
-### 📊 Overview Page
+### Overview Page
 - **Comprehensive Statistics**: Mean, median, std, skewness, kurtosis, and more
 - **Distribution Analysis**: Histograms, box plots, violin plots
 - **Correlation Analysis**: Interactive heatmaps for numeric columns
@@ -18,7 +18,7 @@ A comprehensive, multi-page Streamlit dashboard for exploring, analyzing, and vi
 - **Customizable Filtering**: Select columns and row ranges
 - **Export Capability**: Download filtered data as CSV
 
-### 📈 Time Series Analysis Page
+### Time Series Analysis Page
 - **Automatic DateTime Detection**: Smart column identification
 - **Interactive Time-Series Plots**: Zoom, pan, and range selection
 - **Pattern Analysis**: Hourly, daily, weekly, monthly, and seasonal patterns
@@ -26,7 +26,7 @@ A comprehensive, multi-page Streamlit dashboard for exploring, analyzing, and vi
 - **Flexible Aggregation**: Aggregate by hour/day/week/month with multiple functions (mean, sum, min, max, median)
 - **Multi-Series Support**: Plot and compare multiple variables simultaneously
 
-## 📁 Structure
+## Structure
 
 ```
 mini-capstone/
@@ -43,7 +43,7 @@ mini-capstone/
 └── README.md
 ```
 
-## 🚀 Installation
+## Installation
 
 1. Clone or download this repository
 2. Install dependencies:
@@ -52,7 +52,7 @@ mini-capstone/
 pip install -r requirements.txt
 ```
 
-## 💻 Usage
+## Usage
 
 ### Run the Dashboard
 
@@ -67,10 +67,10 @@ The dashboard will open in your default browser at `http://localhost:8501`
 1. **Upload Data**: Use the sidebar to upload your CSV file
 2. **Home Page**: Get a quick overview and preview
 3. **Navigate**:
-   - Go to **📊 Overview** for detailed statistics and distributions
-   - Go to **📈 Time Series** for temporal pattern analysis (if data contains dates)
+   - Go to ** Overview** for detailed statistics and distributions
+   - Go to ** Time Series** for temporal pattern analysis (if data contains dates)
 
-## 📊 Example Use Cases
+## Example Use Cases
 
 ### Generic Data Analysis
 - Upload any CSV dataset
@@ -92,7 +92,7 @@ This dashboard is designed to be easily adapted for specific use cases:
 3. **Extend visualization**: Create domain-specific charts
 4. **Add pages**: Create new pages for specific analyses
 
-## 🛠️ Technical Details
+## Technical Details
 
 ### Key Technologies
 - **Streamlit**: Multi-page app framework
@@ -110,7 +110,7 @@ This dashboard is designed to be easily adapted for specific use cases:
 - Separate concerns: data loading, analysis, visualization
 - Template structure ready for domain-specific adaptation
 
-## 📝 Future Enhancements
+## Future Enhancements
 
 ### Potential Extensions for Domain-Specific Use
 - API integration for live data (e.g., TEPCO API)
@@ -120,7 +120,7 @@ This dashboard is designed to be easily adapted for specific use cases:
 - Machine learning forecasting
 - Advanced filtering and querying
 
-## 🔧 Customization Guide
+## Customization Guide
 
 ### Adding a New Page
 
@@ -141,10 +141,10 @@ df = get_shared_data()
 1. Add visualization function to `src/visualizations.py`
 2. Use Plotly for interactive charts
 
-## 📄 License
+## License
 
 This project is open for educational and research purposes.
 
-## 🤝 Contributing
+## Contributing
 
 Feel free to fork, modify, and adapt this dashboard for your specific needs!
