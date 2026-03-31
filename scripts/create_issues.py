@@ -447,7 +447,7 @@ ISSUES = [
             "    index=0,\n"
             ")\n"
             "import pytz\n"
-            '    df["date_local"] = df["date"].dt.tz_convert(pytz.timezone(tz_name))\n'
+            'df["date_local"] = df["date"].dt.tz_convert(pytz.timezone(tz_name))\n'
             "```\n"
         ),
     },
