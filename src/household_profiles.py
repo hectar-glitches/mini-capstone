@@ -384,18 +384,39 @@ def get_hourly_carbon_profile(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["_intensity"] = compute_carbon_intensity_series(df)
 
-    # Build datetime index
-    if "time" in df.columns and "date" in df.columns:
-        df["_dt"] = pd.to_datetime(
-            df["date"].astype(str) + " " + df["time"].astype(str),
-            errors="coerce",
-        )
-    elif "date" in df.columns:
-        df["_dt"] = pd.to_datetime(df["date"], errors="coerce")
-    else:
-        return pd.DataFrame()
+    # Extract hour robustly.
+    # load_data() converts any column whose name contains "time" to datetime,
+    # so df["time"] may be a datetime64 (e.g. 1900-01-01 00:30:00) rather than
+    # a plain "HH:MM" string.  We handle both cases.
+    df["_hour"] = None
 
-    df["_hour"] = df["_dt"].dt.hour
+    if "time" in df.columns:
+        t = df["time"]
+        if pd.api.types.is_datetime64_any_dtype(t):
+            # Already a datetime — extract hour directly
+            df["_hour"] = t.dt.hour
+        else:
+            # String like "0:30" or "00:30" — parse the hour portion
+            df["_hour"] = pd.to_datetime(
+                t.astype(str), format="%H:%M", errors="coerce"
+            ).dt.hour
+
+    # Fall back to combining date + time into a full datetime
+    if df["_hour"].isna().all():
+        if "date" in df.columns:
+            if "time" in df.columns:
+                combined = (
+                    pd.to_datetime(df["date"], errors="coerce").dt.strftime("%Y-%m-%d")
+                    + " "
+                    + df["time"].astype(str).str.extract(r"(\d{1,2}:\d{2})")[0].fillna("00:00")
+                )
+                df["_hour"] = pd.to_datetime(combined, errors="coerce").dt.hour
+            else:
+                df["_hour"] = pd.to_datetime(df["date"], errors="coerce").dt.hour
+        else:
+            return pd.DataFrame()
+
+    df["_hour"] = df["_hour"].astype("Int64")
     profile = (
         df.groupby("_hour")["_intensity"]
         .agg(
