@@ -97,17 +97,7 @@ with st.sidebar:
     selected_key = hh_keys[selected_idx]
     hh = get_household(selected_key)
 
-    st.markdown("---")
-    st.markdown("**Which appliance are you planning to use?**")
-    shiftable_appliances = [a for a in hh["appliances"] if a["category"] == "shiftable"]
-    selected_appliance_name = st.selectbox(
-        "Appliance",
-        options=[a["name"] for a in shiftable_appliances],
-        label_visibility="collapsed",
-    )
-    selected_appliance = next(
-        a for a in shiftable_appliances if a["name"] == selected_appliance_name
-    )
+shiftable_appliances = [a for a in hh["appliances"] if a["category"] == "shiftable"]
 
 # ---------------------------------------------------------------------------
 # Data gate
@@ -141,9 +131,6 @@ best_windows  = find_best_windows(profile,  n=3)
 worst_windows = find_worst_windows(profile, n=3)
 best_intensity = best_windows[0]["carbon_intensity_mean"] if best_windows else current_intensity
 
-app    = selected_appliance
-impact = calculate_action_impact(app, current_intensity, best_intensity)
-
 # ---------------------------------------------------------------------------
 # Page header — single compact line
 # ---------------------------------------------------------------------------
@@ -157,6 +144,14 @@ st.markdown(
 )
 
 # ---------------------------------------------------------------------------
+# Derived state — used in both columns
+# ---------------------------------------------------------------------------
+best_hours      = {w["hour"] for w in best_windows}
+worst_hours     = {w["hour"] for w in worst_windows}
+worst_intensity = worst_windows[0]["carbon_intensity_mean"] if worst_windows else current_intensity
+in_best_window  = now_hour in best_hours
+
+# ---------------------------------------------------------------------------
 # Two-column layout: chart left, action right
 # ---------------------------------------------------------------------------
 col_chart, col_action = st.columns([3, 2], gap="large")
@@ -166,9 +161,6 @@ with col_chart:
 
     if not profile.empty:
         fig = go.Figure()
-
-        best_hours  = {w["hour"] for w in best_windows}
-        worst_hours = {w["hour"] for w in worst_windows}
 
         # Green zones (best windows) — clearly visible, soft glow feel
         for h in best_hours:
@@ -257,92 +249,294 @@ with col_chart:
         unsafe_allow_html=True,
     )
 
+    # --- Appliance selector — below the appliance list ---
+    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+    st.markdown("**Which appliance are you planning to use?**")
+    selected_appliance_name = st.selectbox(
+        "Appliance",
+        options=[a["name"] for a in shiftable_appliances],
+        label_visibility="collapsed",
+    )
+
+app = next(a for a in shiftable_appliances if a["name"] == selected_appliance_name)
+impact = calculate_action_impact(app, current_intensity, best_intensity)
+
 with col_action:
     # --- Action comparison ---
     st.markdown(f"**{app['name']}** — timing impact")
 
     c_now, c_vs, c_best = st.columns([5, 1, 5])
-    with c_now:
-        st.metric(f"If you use it now", f"{impact['co2_now_g']:.0f} g CO₂",
-                  help=f"{app['kwh']} kWh × {current_intensity:.0f} g/kWh (current grid mix)")
-    with c_vs:
-        st.markdown("<div style='text-align:center;padding-top:1.8rem;color:#555'>→</div>",
-                    unsafe_allow_html=True)
-    with c_best:
-        if best_windows:
-            bw = best_windows[0]
-            st.metric(
-                f"If you wait until {bw['label']}",
-                f"{impact['co2_best_g']:.0f} g CO₂",
-                delta=f"−{impact['co2_saved_g']:.0f} g" if impact['co2_saved_g'] > 0 else "Already the best time",
-                delta_color="inverse",
-                help=f"{app['kwh']} kWh × {best_intensity:.0f} g/kWh (cleaner grid window)",
+
+    if in_best_window:
+        # Already in a green window — compare now vs worst time
+        co2_now_g      = app["kwh"] * current_intensity
+        co2_worst_g    = app["kwh"] * worst_intensity
+        saved_vs_worst = max(co2_worst_g - co2_now_g, 0)
+        pct_vs_worst   = saved_vs_worst / co2_worst_g * 100 if co2_worst_g > 0 else 0
+        ww = worst_windows[0] if worst_windows else None
+
+        st.markdown(
+            '<div style="font-size:0.78rem;color:#4ade80;margin-bottom:4px">'
+            'You\'re already in a green window — now is the best time to run it.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        with c_now:
+            st.metric("Running it now", f"{co2_now_g:.0f} g CO₂",
+                      help=f"{app['kwh']} kWh × {current_intensity:.0f} g/kWh (current grid)")
+        with c_vs:
+            st.markdown("<div style='text-align:center;padding-top:1.8rem;color:#555'>vs</div>",
+                        unsafe_allow_html=True)
+        with c_best:
+            if ww:
+                st.metric(
+                    f"Peak time ({ww['label']})",
+                    f"{co2_worst_g:.0f} g CO₂",
+                    delta=f"−{saved_vs_worst:.0f} g" if saved_vs_worst > 0 else "Similar",
+                    delta_color="inverse",
+                    help=f"{app['kwh']} kWh × {worst_intensity:.0f} g/kWh (worst grid window)",
+                )
+        if saved_vs_worst > 0 and ww:
+            st.markdown(
+                f'<div class="impact-box">'
+                f'Running now saves <strong>{saved_vs_worst:.0f} g CO₂</strong> '
+                f'({pct_vs_worst:.0f}% less) vs the peak grid hours at {ww["label"]}. '
+                f'Over 30 uses: ~<strong>{saved_vs_worst*30/1000:.2f} kg</strong> saved.'
+                f'</div>',
+                unsafe_allow_html=True,
             )
+        log_g     = saved_vs_worst
+        btn_label = f"I ran it now — {app['name']}"
 
-    if impact["co2_saved_g"] > 0:
-        st.markdown(
-            f'<div class="impact-box">'
-            f'Waiting saves <strong>{impact["co2_saved_g"]:.0f} g CO₂</strong> '
-            f'({impact["pct_improvement"]:.0f}% less per use). '
-            f'Over 30 uses: ~<strong>{impact["co2_saved_g"]*30/1000:.2f} kg</strong> saved.'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
     else:
-        st.markdown(
-            '<div class="impact-box">The grid is at its cleanest right now — no need to wait.</div>',
+        # Not in best window — show current vs best window
+        bw = best_windows[0] if best_windows else None
 
-            unsafe_allow_html=True,
-        )
+        # Savings vs peak (always credited when user logs a shift)
+        co2_worst_g   = app["kwh"] * worst_intensity
+        saved_vs_peak = max(co2_worst_g - impact["co2_now_g"], 0)
+        # Additional savings achievable by waiting for the best window
+        extra_savings = impact["co2_saved_g"]  # co2_now - co2_best
+
+        if bw:
+            bw_hour = bw["hour"]
+            hours_until = (bw_hour - now_hour) % 24
+            if hours_until == 0:
+                hours_until = 24
+            day_prefix = "tomorrow " if bw_hour <= now_hour else ""
+            if hours_until == 1:
+                wait_hint = "in about 1 hour"
+            elif hours_until < 24:
+                wait_hint = f"in about {hours_until} hours"
+            else:
+                wait_hint = "tomorrow"
+            wait_label = f"If you wait until {day_prefix}{bw['label']}"
+        else:
+            wait_hint = ""
+            wait_label = "Best window"
+            day_prefix = ""
+
+        with c_now:
+            st.metric(
+                "If you use it now",
+                f"{impact['co2_now_g']:.0f} g CO₂",
+                delta=f"−{saved_vs_peak:.0f} g vs peak" if saved_vs_peak > 0 else None,
+                delta_color="inverse",
+                help=f"{app['kwh']} kWh × {current_intensity:.0f} g/kWh",
+            )
+        with c_vs:
+            st.markdown("<div style='text-align:center;padding-top:1.8rem;color:#555'>→</div>",
+                        unsafe_allow_html=True)
+        with c_best:
+            if bw:
+                st.metric(
+                    wait_label,
+                    f"{impact['co2_best_g']:.0f} g CO₂",
+                    delta=f"−{extra_savings:.0f} g more" if extra_savings > 0 else "Already optimal",
+                    delta_color="inverse",
+                    help=f"{app['kwh']} kWh × {best_intensity:.0f} g/kWh (cleaner grid window)",
+                )
+
+        if saved_vs_peak > 0 and bw:
+            if extra_savings > 0:
+                msg = (
+                    f'Running now already saves <strong>{saved_vs_peak:.0f} g CO₂</strong> '
+                    f'vs peak hours — good shift. '
+                    f'Waiting {wait_hint} ({day_prefix}{bw["label"]}) '
+                    f'saves <strong>{extra_savings:.0f} g more</strong>.'
+                )
+            else:
+                msg = (
+                    f'Running now saves <strong>{saved_vs_peak:.0f} g CO₂</strong> '
+                    f'vs peak hours. The grid is already near its cleanest.'
+                )
+            st.markdown(
+                f'<div class="impact-box">{msg}</div>',
+                unsafe_allow_html=True,
+            )
+        elif extra_savings > 0 and bw:
+            st.markdown(
+                f'<div class="impact-box">'
+                f'Waiting {wait_hint} ({day_prefix}{bw["label"]}) saves '
+                f'<strong>{extra_savings:.0f} g CO₂</strong> vs running now.'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<div class="impact-box">The grid is at its cleanest right now — no need to wait.</div>',
+                unsafe_allow_html=True,
+            )
+        # Always credit savings vs peak so any shift off-peak counts
+        log_g     = saved_vs_peak if saved_vs_peak > 0 else max(extra_savings, 0)
+        btn_label = f"I shifted it — {app['name']}"
 
     st.markdown("---")
 
     # --- Incentive tracker ---
-    st.markdown("**节電チャレンジ — Power-Saving Challenge**" if False else "**Power-Saving Challenge**")
-    st.markdown(
-        '<div style="font-size:0.8rem;color:#666;line-height:1.6;margin-bottom:8px">'
-        'Each time you delay an appliance until a green window, tap <em>I shifted it</em> below. '
-        'Reach <strong style="color:#ccc">500 g saved</strong> to complete the challenge.'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown("**Power-Saving Challenge**")
+
+    CHALLENGES = {
+        "Starter Shift": {
+            "goal_g": 300,
+            "goal_shifts": 3,
+            "tag": "Beginner",
+            "tag_color": "#22c55e",
+            "program": "TEPCO 節電チャレンジ",
+            "reward": "Bill credits for shifting load off peak hours",
+        },
+        "Carbon Reducer": {
+            "goal_g": 500,
+            "goal_shifts": 5,
+            "tag": "Intermediate",
+            "tag_color": "#f59e0b",
+            "program": "SoftBank Eco-Denki",
+            "reward": "Points redeemable per kWh avoided in high-carbon windows",
+        },
+        "Peak Avoider": {
+            "goal_g": 1000,
+            "goal_shifts": 8,
+            "tag": "Advanced",
+            "tag_color": "#ef4444",
+            "program": "Octopus Energy Japan",
+            "reward": "Time-of-use tariff: cheaper rates 10:00–14:00",
+        },
+    }
+    challenge_keys = list(CHALLENGES.keys())
 
     if "action_log" not in st.session_state:
         st.session_state["action_log"] = []
+    if "selected_challenge" not in st.session_state:
+        st.session_state["selected_challenge"] = "Starter Shift"
 
+    # Challenge selection cards — one per column
+    ch_cols = st.columns(3)
+    for i, (k, ch_opt) in enumerate(CHALLENGES.items()):
+        with ch_cols[i]:
+            active = st.session_state["selected_challenge"] == k
+            border = ch_opt["tag_color"] if active else "rgba(255,255,255,0.08)"
+            st.markdown(
+                f'<div style="border:1px solid {border};border-radius:8px;'
+                f'padding:8px 10px;font-size:0.76rem;line-height:1.65">'
+                f'<span style="font-weight:600;font-size:0.8rem">{k}</span><br>'
+                f'<span style="color:#888">{ch_opt["goal_g"]} g &nbsp;·&nbsp; '
+                f'{ch_opt["goal_shifts"]} shifts</span><br>'
+                f'<span style="color:{ch_opt["tag_color"]};font-size:0.7rem">'
+                f'{ch_opt["tag"]}</span><br>'
+                f'<span style="color:#556;font-size:0.69rem">{ch_opt["program"]}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+    new_challenge = st.radio(
+        "Challenge",
+        options=challenge_keys,
+        index=challenge_keys.index(st.session_state["selected_challenge"]),
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    if new_challenge != st.session_state["selected_challenge"]:
+        st.session_state["selected_challenge"] = new_challenge
+        st.session_state["action_log"] = []
+        st.rerun()
+
+    ch = CHALLENGES[st.session_state["selected_challenge"]]
     total_saved_g = sum(st.session_state["action_log"])
     actions_count = len(st.session_state["action_log"])
-    CHALLENGE_GOAL_G = 500.0
-    progress_pct = min(total_saved_g / CHALLENGE_GOAL_G * 100, 100)
-    remaining_g = max(CHALLENGE_GOAL_G - total_saved_g, 0)
+    CHALLENGE_GOAL_G = float(ch["goal_g"])
+    CHALLENGE_GOAL_SHIFTS = ch["goal_shifts"]
 
-    # Progress bar + status line
+    g_pct = min(total_saved_g / CHALLENGE_GOAL_G * 100, 100)
+    s_pct = min(actions_count / CHALLENGE_GOAL_SHIFTS * 100, 100)
+    remaining_g = max(CHALLENGE_GOAL_G - total_saved_g, 0)
+    remaining_s = max(CHALLENGE_GOAL_SHIFTS - actions_count, 0)
+
+    # Dual progress bars
     st.markdown(
+        f'<div style="margin-top:6px;font-size:0.74rem;color:#666;margin-bottom:1px">'
+        f'CO₂ saved</div>'
         f'<div class="incentive-bar-bg">'
-        f'<div class="incentive-bar-fill" style="width:{int(progress_pct)}%"></div>'
-        f'</div>'
-        f'<div style="font-size:0.78rem;color:#777;margin-top:3px">'
-        f'{total_saved_g:.0f} g saved &nbsp;·&nbsp; {remaining_g:.0f} g to go &nbsp;·&nbsp; {actions_count} shifts'
-        f'</div>',
+        f'<div class="incentive-bar-fill" style="width:{int(g_pct)}%"></div></div>'
+        f'<div style="font-size:0.73rem;color:#777;margin-bottom:5px">'
+        f'{total_saved_g:.0f} / {int(CHALLENGE_GOAL_G)} g'
+        f'{"  ✓" if g_pct >= 100 else f"  — {remaining_g:.0f} g to go"}</div>'
+        f'<div style="font-size:0.74rem;color:#666;margin-bottom:1px">'
+        f'Shifts completed</div>'
+        f'<div class="incentive-bar-bg">'
+        f'<div class="incentive-bar-fill" style="width:{int(s_pct)}%"></div></div>'
+        f'<div style="font-size:0.73rem;color:#777;margin-bottom:6px">'
+        f'{actions_count} / {CHALLENGE_GOAL_SHIFTS}'
+        f'{"  ✓" if s_pct >= 100 else f"  — {remaining_s} more"}</div>',
         unsafe_allow_html=True,
     )
 
-    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
     bc1, bc2 = st.columns([3, 1])
     with bc1:
-        if st.button(f"I shifted it — {app['name']}", use_container_width=True):
-            st.session_state["action_log"].append(max(impact["co2_saved_g"], 0))
+        if st.button(btn_label, use_container_width=True):
+            st.session_state["action_log"].append(max(log_g, 0))
             st.rerun()
     with bc2:
         if st.button("Reset", use_container_width=True):
             st.session_state["action_log"] = []
             st.rerun()
 
-    if progress_pct >= 100:
-        st.success("Challenge complete — 500 g saved!")
+    if g_pct >= 100 and s_pct >= 100:
+        other_programs = [
+            (k2, v2) for k2, v2 in CHALLENGES.items()
+            if k2 != st.session_state["selected_challenge"]
+        ]
+        other_html = "".join(
+            f'<strong style="color:#bbb">{v2["program"]}</strong>'
+            f' — {v2["reward"]}<br>'
+            for _, v2 in other_programs
+        )
+        st.markdown(
+            f'<div style="border:1px solid rgba(34,197,94,0.4);border-radius:8px;'
+            f'padding:14px 16px;margin-top:8px">'
+            f'<div style="color:#4ade80;font-weight:600;font-size:0.9rem;margin-bottom:6px">'
+            f'Challenge complete — {int(CHALLENGE_GOAL_G)} g &amp; '
+            f'{CHALLENGE_GOAL_SHIFTS} shifts</div>'
+            f'<div style="font-size:0.8rem;color:#aaa;line-height:1.8;margin-bottom:8px">'
+            f'You qualify for: <strong style="color:#ddd">{ch["program"]}</strong>'
+            f' — {ch["reward"]}</div>'
+            f'<div style="font-size:0.74rem;color:#666;line-height:1.8">'
+            f'Other programs to explore:<br>{other_html}</div>'
+            f'<div style="font-size:0.69rem;color:#444;margin-top:8px">'
+            f'Illustrative design reference only. No actual rewards are issued here.'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
     elif actions_count > 0:
-        st.caption(f"{remaining_g:.0f} g more to reach the goal.")
+        unmet = []
+        if g_pct < 100:
+            unmet.append(f"{remaining_g:.0f} g more")
+        if s_pct < 100:
+            unmet.append(
+                f"{remaining_s} more shift{'s' if remaining_s != 1 else ''}"
+            )
+        st.caption("Need: " + " and ".join(unmet) + " to complete.")
 
     st.markdown("---")
 
