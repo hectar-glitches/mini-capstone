@@ -3,5 +3,13 @@ path = "app.py"
 name = "Home"
 
 [[pages]]
-path = "Time_Series.py"
-name = "Time Series Analysis"
+path = "pages/Overview.py"
+name = "Overview"
+
+[[pages]]
+path = "pages/Household_Actions.py"
+name = "Household Models"
+
+[[pages]]
+path = "pages/Current_Power.py"
+name = "Current Tokyo Power"
