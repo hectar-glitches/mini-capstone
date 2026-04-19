@@ -1,18 +1,133 @@
 import streamlit as st
 import pandas as pd
-from src.data_loader import load_data, get_shared_data, set_shared_data
+from src.data_loader import get_shared_data, load_data, set_shared_data, get_data_info, fetch_data
 from src.visualizations import create_distribution_chart, create_correlation_heatmap
-from src.analyzer import get_descriptive_stats, get_data_quality_report
+from src.analyzer import get_descriptive_stats
 
 st.set_page_config(page_title="Overview", layout="wide", page_icon="📊")
 
 st.title(" Data Overview")
 
-# Get shared data
+# Sidebar
+with st.sidebar:
+    st.header("Data Source")
+
+    data_source = st.radio(
+        "Choose data source",
+        ["Fetch TEPCO data", "Upload CSV file"]
+    )
+
+    if data_source == "Upload CSV file":
+        uploaded_file = st.file_uploader("Upload CSV file", type=['csv'])
+    
+        if uploaded_file:
+            # Load and cache data
+            df = load_data(uploaded_file)
+            # Store in session data
+            set_shared_data()
+
+            st.success("File loaded successfully!")
+
+            # Show basic info
+            info = get_data_info()
+            st.metric("Rows", f"{info['rows']:,}")
+            st.metric("Columns", info['columns'])
+            st.metric("Size", f"{info['memory_mb']:.2f} MB")
+    
+    else:
+        if st.button("Fetch Latest TEPCO data"):
+            file_like = fetch_data()
+            if file_like is not None:
+                df = load_data()
+                # Store in session state for multi-page access
+                set_shared_data()
+                
+                st.success(" File loaded successfully!")
+            
+            # Show basic info
+            info = get_data_info()
+            st.metric("Rows", f"{info['rows']:,}")
+            st.metric("Columns", info['columns'])
+            st.metric("Size", f"{info['memory_mb']:.2f} MB")
+
+# Main content
 df = get_shared_data()
 
+if df is not None:
+    st.markdown("---")
+    
+    # Quick overview section
+    st.subheader("Quick Overview")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    info = get_data_info()
+    
+    with col1:
+        st.metric("Total Rows", f"{info['rows']:,}")
+    with col2:
+        st.metric("Total Columns", info['columns'])
+    with col3:
+        st.metric("Numeric Columns", info['numeric_cols'])
+    with col4:
+        st.metric("DateTime Columns", info['datetime_cols'])
+    
+    # Data preview
+    st.subheader(" Data Preview")
+    st.dataframe(df.head(10), use_container_width=True)
+    
+    # Column information
+    st.subheader(" Column Information")
+    
+    col_info = []
+    for col in df.columns:
+        col_info.append({
+            'Column Name': col,
+            'Data Type': str(df[col].dtype),
+            'Non-Null Count': df[col].count(),
+            'Null Count': df[col].isnull().sum()
+        })
+    
+    col_df = pd.DataFrame(col_info)
+    st.dataframe(col_df, use_container_width=True)
+    
+    # Quick visualization
+    st.subheader(" Quick Visualization")
+    
+    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+    
+    if len(numeric_cols) >= 1:
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            if len(numeric_cols) >= 2:
+                st.write("**Scatter Plot**")
+                x_col = st.selectbox("X-axis", numeric_cols, key='x')
+                y_col = st.selectbox(
+                    "Y-axis",
+                    [col for col in numeric_cols if col != x_col],
+                    key='y'
+                )
+                
+                import plotly.express as px
+                fig = px.scatter(df, x=x_col, y=y_col, opacity=0.6)
+                fig.update_layout(template='plotly_white', height=400)
+            else:
+                st.write("**Histogram**")
+                selected_col = st.selectbox("Select column", numeric_cols)
+                
+                import plotly.express as px
+                fig = px.histogram(df, x=selected_col)
+                fig.update_layout(template='plotly_white', height=400)
+        
+        with col2:
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No numeric columns available for quick visualization")
+
+
 if df is None:
-    st.info("👈 Upload a CSV file from the Home page to get started")
+    st.info(" Upload a CSV file from the Home page to get started")
     st.stop()
 
 # Sidebar controls
