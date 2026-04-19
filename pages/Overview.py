@@ -10,7 +10,7 @@ st.caption(
 
 st.divider()
 
-# ── Core questions ────────────────────────────────────────────────────────────
+# Core questions
 st.subheader("The core question")
 
 col1, col2 = st.columns(2)
@@ -24,7 +24,7 @@ with col2:
 
 st.divider()
 
-# ── How it works ──────────────────────────────────────────────────────────────
+# How it works
 st.subheader("How it works")
 
 st.markdown("""
@@ -42,7 +42,7 @@ high-draw appliances.
 
 st.divider()
 
-# ── Pages guide ───────────────────────────────────────────────────────────────
+# ── Pages guide
 st.subheader("What each page does")
 
 c1, c2 = st.columns(2)
@@ -64,7 +64,7 @@ with c2:
 
 st.divider()
 
-# ── Household profiles ────────────────────────────────────────────────────────
+# ── Household profiles 
 st.subheader("About the household profiles")
 
 st.markdown("""
@@ -83,7 +83,7 @@ Actual in-use consumption of older stock is typically 1.2–1.5\u00d7 the label 
 
 st.divider()
 
-# ── Caveats ───────────────────────────────────────────────────────────────────
+#  Caveats 
 st.subheader("What this dashboard does not claim")
 
 st.markdown("""
