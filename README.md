@@ -1,150 +1,74 @@
-# Data Analyzer Dashboard
+# Tokyo Power Consumption Analyzer
 
-A comprehensive, multi-page Streamlit dashboard for exploring, analyzing, and visualizing CSV data. Built with extensibility in mind for domain-specific adaptations (e.g., TEPCO electricity data).
+A Streamlit dashboard that shows Tokyo residents when to shift flexible household electricity tasks to lower-carbon windows, using live TEPCO generation mix data.
 
-## Features
+## What it does
 
-### Home Page
-- **File Upload**: Drag-and-drop CSV upload with automatic caching
-- **Quick Overview**: Instant data preview and column information
-- **Quick Visualization**: Interactive scatter plots or histograms
-- **Data Info**: Row counts, column types, memory usage
+The app answers two questions:
 
-### Overview Page
-- **Comprehensive Statistics**: Mean, median, std, skewness, kurtosis, and more
-- **Distribution Analysis**: Histograms, box plots, violin plots
-- **Correlation Analysis**: Interactive heatmaps for numeric columns
-- **Data Quality Reports**: Missing value analysis and duplicate detection
-- **Customizable Filtering**: Select columns and row ranges
-- **Export Capability**: Download filtered data as CSV
+1. **How carbon-intensive is the Tokyo grid right now?** — based on the live TEPCO fuel mix (nuclear, solar, gas, coal, hydro, etc.)
+2. **When is the cleanest window today to run a flexible appliance?** — calculated per household type using the same carbon intensity data
 
-### Time Series Analysis Page
-- **Automatic DateTime Detection**: Smart column identification
-- **Interactive Time-Series Plots**: Zoom, pan, and range selection
-- **Pattern Analysis**: Hourly, daily, weekly, monthly, and seasonal patterns
-- **Date Range Filtering**: Focus on specific time periods
-- **Flexible Aggregation**: Aggregate by hour/day/week/month with multiple functions (mean, sum, min, max, median)
-- **Multi-Series Support**: Plot and compare multiple variables simultaneously
+## Pages
+
+| Page | Purpose |
+|---|---|
+| Home | Fetches latest TEPCO data; shows where to go next |
+| Current Power Mix | Live fuel breakdown, carbon intensity gauge, auto-refreshes every 60 s |
+| Household Actions | Household profile selector, appliance picker, best/worst timing windows, CO2 impact calculator, Power-Saving Challenge reference |
+| Overview | About page — methodology, data sources, caveats |
+
+## Household profiles
+
+Three ward-based archetypes grounded in 2020 Population Census data:
+
+| Profile | Ward | Daily consumption | Shiftable load |
+|---|---|---|---|
+| Central Apartment | Shibuya-ku | 6-8 kWh | 40% |
+| Family / Elderly Household | Adachi-ku | 14-16 kWh | 35% |
+| Suburban Family | Setagaya-ku | 18-22 kWh | 55% |
+
+Appliance consumption values are based on METI Top Runner Programme standards, not monitored data.
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Requires Python 3.10+. Tested on Python 3.13 (macOS ARM).
+
+## Data source
+
+TEPCO publishes daily generation mix CSV files at:
+https://www.tepco.co.jp/forecast/html/area_jukyu-j.html
+
+`src/data_fetcher.py` fetches the latest file automatically on first load. No manual download or CSV upload is needed.
 
 ## Structure
 
 ```
-mini-capstone/
-├── app.py                      # Home page with upload and quick preview
-├── pages/
-│   ├── 1_📊_Overview.py        # Comprehensive data analysis
-│   └── 2_📈_Time_Series.py     # Time-series specific analysis
-├── src/
-│   ├── __init__.py
-│   ├── data_loader.py          # Data loading with datetime detection
-│   ├── analyzer.py             # Statistical analysis and pattern detection
-│   └── visualizations.py       # All chart creation functions
-├── requirements.txt
-└── README.md
+app.py                     # Home / data loader
+pages/
+    Current_Power.py       # Live grid mix and carbon intensity
+    Household_Actions.py   # Household profiles, timing guidance, impact calculator
+    Overview.py            # About / methodology
+src/
+    data_fetcher.py        # Fetches TEPCO CSV from source
+    data_loader.py         # Parsing, caching, session state
+    household_profiles.py  # Ward archetypes and appliance data
+    analyzer.py            # Carbon intensity calculations
+    visualizations.py      # Shared chart helpers
+requirements.txt
+DESIGN_PROCESS.md          # Full design and methodology documentation
 ```
 
-## Installation
+## Requirements
 
-1. Clone or download this repository
-2. Install dependencies:
-
-```bash
-pip install -r requirements.txt
 ```
-
-## Usage
-
-### Run the Dashboard
-
-```bash
-streamlit run app.py
+streamlit>=1.40.0
+pandas==2.2.0
+plotly==5.18.0
+streamlit-autorefresh==1.0.1
 ```
-
-The dashboard will open in your default browser at `http://localhost:8501`
-
-### Basic Workflow
-
-1. **Upload Data**: Use the sidebar to upload your CSV file
-2. **Home Page**: Get a quick overview and preview
-3. **Navigate**:
-   - Go to ** Overview** for detailed statistics and distributions
-   - Go to ** Time Series** for temporal pattern analysis (if data contains dates)
-
-## Example Use Cases
-
-### Generic Data Analysis
-- Upload any CSV dataset
-- Explore distributions and correlations
-- Identify data quality issues
-- Export filtered subsets
-
-### Time-Series Data
-- Upload data with timestamp columns
-- Analyze patterns by hour, day of week, month, or season
-- Compare multiple metrics over time
-- Filter and aggregate for specific periods
-
-### Domain-Specific Adaptation (e.g., TEPCO Electricity)
-This dashboard is designed to be easily adapted for specific use cases:
-
-1. **Modify `data_loader.py`**: Add domain-specific data sources
-2. **Customize `analyzer.py`**: Add specialized metrics (e.g., carbon intensity)
-3. **Extend visualization**: Create domain-specific charts
-4. **Add pages**: Create new pages for specific analyses
-
-## Technical Details
-
-### Key Technologies
-- **Streamlit**: Multi-page app framework
-- **Pandas**: Data manipulation and analysis
-- **Plotly**: Interactive visualizations
-- **NumPy**: Numerical computations
-
-### Performance Features
-- `@st.cache_data` for efficient data loading
-- Session state for multi-page data sharing
-- Optimized visualizations for large datasets
-
-### Extensibility
-- Modular architecture for easy customization
-- Separate concerns: data loading, analysis, visualization
-- Template structure ready for domain-specific adaptation
-
-## Future Enhancements
-
-### Potential Extensions for Domain-Specific Use
-- API integration for live data (e.g., TEPCO API)
-- Custom metrics and KPIs
-- Uncertainty visualization for estimated values
-- Comparative analysis across multiple time periods
-- Machine learning forecasting
-- Advanced filtering and querying
-
-## Customization Guide
-
-### Adding a New Page
-
-1. Create a new file in `pages/` directory: `3_YourPage.py`
-2. Use session state to access shared data:
-```python
-from src.data_loader import get_shared_data
-df = get_shared_data()
-```
-
-### Adding New Analysis Functions
-
-1. Add function to `src/analyzer.py`
-2. Import and use in your pages
-
-### Creating Custom Visualizations
-
-1. Add visualization function to `src/visualizations.py`
-2. Use Plotly for interactive charts
-
-## License
-
-This project is open for educational and research purposes.
-
-## Contributing
-
-Feel free to fork, modify, and adapt this dashboard for your specific needs!
