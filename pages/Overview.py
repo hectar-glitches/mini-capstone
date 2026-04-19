@@ -1,229 +1,95 @@
 import streamlit as st
-import pandas as pd
-from src.data_loader import get_shared_data, load_data, set_shared_data, get_data_info, fetch_data
-from src.visualizations import create_distribution_chart, create_correlation_heatmap
-from src.analyzer import get_descriptive_stats
 
-st.set_page_config(page_title="Overview", layout="wide", page_icon="📊")
+st.set_page_config(page_title="Overview", layout="wide", page_icon="⚡")
 
-st.title(" Data Overview")
+st.title("Tokyo Power Consumption Analyzer")
+st.caption(
+    "A dashboard for understanding where Tokyo's electricity comes from, how carbon-heavy "
+    "the grid is right now, and when it makes sense to shift flexible household tasks to cleaner windows."
+)
 
-# Sidebar
-with st.sidebar:
-    st.header("Data Source")
+st.divider()
 
-    data_source = st.radio(
-        "Choose data source",
-        ["Fetch TEPCO data", "Upload CSV file"]
+# Core questions
+st.subheader("The core question")
+
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("**Is now a good time to use electricity — or should I wait a few hours?**")
+with col2:
+    st.markdown(
+        "**If I shift one flexible task (laundry, EV charging, hot water) to a cleaner window, "
+        "how much CO\u2082 does that save?**"
     )
 
-    if data_source == "Upload CSV file":
-        uploaded_file = st.file_uploader("Upload CSV file", type=['csv'])
-    
-        if uploaded_file:
-            # Load and cache data
-            df = load_data(uploaded_file)
-            # Store in session data
-            set_shared_data()
+st.divider()
 
-            st.success("File loaded successfully!")
+# How it works
+st.subheader("How it works")
 
-            # Show basic info
-            info = get_data_info()
-            st.metric("Rows", f"{info['rows']:,}")
-            st.metric("Columns", info['columns'])
-            st.metric("Size", f"{info['memory_mb']:.2f} MB")
-    
-    else:
-        if st.button("Fetch Latest TEPCO data"):
-            file_like = fetch_data()
-            if file_like is not None:
-                df = load_data()
-                # Store in session state for multi-page access
-                set_shared_data()
-                
-                st.success(" File loaded successfully!")
-            
-            # Show basic info
-            info = get_data_info()
-            st.metric("Rows", f"{info['rows']:,}")
-            st.metric("Columns", info['columns'])
-            st.metric("Size", f"{info['memory_mb']:.2f} MB")
+st.markdown("""
+The dashboard pulls live generation data from **TEPCO** (Tokyo Electric Power Company) — the utility
+that serves the greater Tokyo area. TEPCO publishes a breakdown of how much electricity is being
+generated from each fuel source at any given time: coal, LNG (gas), oil, nuclear, solar, wind,
+hydro, and others.
 
-# Main content
-df = get_shared_data()
+From that fuel mix, the dashboard estimates **carbon intensity** — roughly how many grams of CO\u2082
+are associated with producing one kilowatt-hour of electricity right now. Coal is the heaviest
+(~900 gCO\u2082/kWh), LNG is moderate (~450), and renewables are near zero. When the grid is running
+on more solar and less coal, the carbon intensity drops — and that is the right time to run
+high-draw appliances.
+""")
 
-if df is not None:
-    st.markdown("---")
-    
-    # Quick overview section
-    st.subheader("Quick Overview")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    info = get_data_info()
-    
-    with col1:
-        st.metric("Total Rows", f"{info['rows']:,}")
-    with col2:
-        st.metric("Total Columns", info['columns'])
-    with col3:
-        st.metric("Numeric Columns", info['numeric_cols'])
-    with col4:
-        st.metric("DateTime Columns", info['datetime_cols'])
-    
-    # Data preview
-    st.subheader(" Data Preview")
-    st.dataframe(df.head(10), use_container_width=True)
-    
-    # Column information
-    st.subheader(" Column Information")
-    
-    col_info = []
-    for col in df.columns:
-        col_info.append({
-            'Column Name': col,
-            'Data Type': str(df[col].dtype),
-            'Non-Null Count': df[col].count(),
-            'Null Count': df[col].isnull().sum()
-        })
-    
-    col_df = pd.DataFrame(col_info)
-    st.dataframe(col_df, use_container_width=True)
-    
-    # Quick visualization
-    st.subheader(" Quick Visualization")
-    
-    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-    
-    if len(numeric_cols) >= 1:
-        col1, col2 = st.columns([1, 3])
-        
-        with col1:
-            if len(numeric_cols) >= 2:
-                st.write("**Scatter Plot**")
-                x_col = st.selectbox("X-axis", numeric_cols, key='x')
-                y_col = st.selectbox(
-                    "Y-axis",
-                    [col for col in numeric_cols if col != x_col],
-                    key='y'
-                )
-                
-                import plotly.express as px
-                fig = px.scatter(df, x=x_col, y=y_col, opacity=0.6)
-                fig.update_layout(template='plotly_white', height=400)
-            else:
-                st.write("**Histogram**")
-                selected_col = st.selectbox("Select column", numeric_cols)
-                
-                import plotly.express as px
-                fig = px.histogram(df, x=selected_col)
-                fig.update_layout(template='plotly_white', height=400)
-        
-        with col2:
-            st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("No numeric columns available for quick visualization")
+st.divider()
 
+# ── Pages guide
+st.subheader("What each page does")
 
-if df is None:
-    st.info(" Upload a CSV file from the Home page to get started")
-    st.stop()
+c1, c2 = st.columns(2)
 
-# Sidebar controls
-with st.sidebar:
-    st.header("Filter Controls")
-    
-    # Column selection for filtering
-    all_columns = df.columns.tolist()
-    selected_columns = st.multiselect(
-        "Select columns to display",
-        all_columns,
-        default=all_columns[:10] if len(all_columns) > 10 else all_columns
-    )
-    
-    # Row filtering
-    if st.checkbox("Filter rows"):
-        max_rows = len(df)
-        row_range = st.slider(
-            "Select row range",
-            0, max_rows,
-            (0, min(1000, max_rows))
-        )
-        df_display = df.iloc[row_range[0]:row_range[1]]
-    else:
-        df_display = df
-
-# Filter by selected columns if any selected
-if selected_columns:
-    df_display = df_display[selected_columns]
-
-# Main content
-tab1, tab2, tab3 = st.tabs([" Data Preview", " Statistics", " Distributions"])
-
-with tab1:
-    st.subheader("Data Preview")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Rows", f"{len(df):,}")
-    with col2:
-        st.metric("Total Columns", len(df.columns))
-    with col3:
-        st.metric("Numeric Columns", len(df.select_dtypes(include=['number']).columns))
-    with col4:
-        st.metric("Memory Usage", f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
-    
-    st.dataframe(df_display, use_container_width=True, height=400)
-    
-    # Download option
-    csv = df_display.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label=" Download filtered data as CSV",
-        data=csv,
-        file_name="filtered_data.csv",
-        mime="text/csv",
+with c1:
+    st.markdown("#### ⚡ Current Power Mix")
+    st.markdown(
+        "Shows the grid's fuel breakdown and carbon intensity at this moment. "
+        "Auto-refreshes every 60 seconds. Start here to get an instant read on the grid."
     )
 
-with tab2:
-    st.subheader("Descriptive Statistics")
-    
-    stats_df = get_descriptive_stats(df)
-    if stats_df is not None:
-        st.dataframe(stats_df, use_container_width=True)
-        
-        # Show column data types
-        st.subheader("Column Data Types")
-        dtype_df = pd.DataFrame({
-            'Column': df.dtypes.index,
-            'Data Type': df.dtypes.values.astype(str)
-        })
-        st.dataframe(dtype_df, use_container_width=True)
-    else:
-        st.info("No numeric columns found for statistical analysis")
+with c2:
+    st.markdown("#### 🏠 Household Actions")
+    st.markdown(
+        "Choose a household profile (Shibuya, Adachi, or Setagaya) and a flexible appliance. "
+        "The dashboard finds the cleanest windows in the day and shows the estimated CO\u2082 "
+        "difference between acting now versus waiting."
+    )
 
-with tab3:
-    st.subheader("Distribution Analysis")
-    
-    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-    
-    if numeric_cols:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            selected_col = st.selectbox("Select column for distribution", numeric_cols)
-        
-        with col2:
-            chart_type = st.selectbox("Chart type", ["Histogram", "Box Plot", "Violin Plot"])
-        
-        if selected_col:
-            fig = create_distribution_chart(df, selected_col, chart_type.lower().replace(" ", "_"))
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Correlation heatmap
-        if len(numeric_cols) > 1:
-            st.subheader("Correlation Matrix")
-            fig_corr = create_correlation_heatmap(df)
-            st.plotly_chart(fig_corr, use_container_width=True)
-    else:
-        st.info("No numeric columns available for distribution analysis")
+st.divider()
+
+# ── Household profiles 
+st.subheader("About the household profiles")
+
+st.markdown("""
+The three profiles — **Shibuya-ku**, **Adachi-ku**, and **Setagaya-ku** — are modeled archetypes
+based on the 2020 Japanese Population Census. They do not represent real households and do not
+mean the grid mix differs by ward (it does not). Their purpose is to reflect different
+routines and flexibility constraints:
+
+- **Shibuya** — single or couple, compact apartment, ~6–8 kWh/day, 40% of load is shiftable
+- **Adachi** — family or elderly household, standard apartment/house, ~14–16 kWh/day, 35% shiftable
+- **Setagaya** — larger family household with EV, ~18–22 kWh/day, higher absolute shift potential
+
+Appliance energy values are estimates grounded in METI Top Runner efficiency standards.
+Actual in-use consumption of older stock is typically 1.2–1.5\u00d7 the label value.
+""")
+
+st.divider()
+
+#  Caveats 
+st.subheader("What this dashboard does not claim")
+
+st.markdown("""
+This dashboard uses grid-level TEPCO data, not household smart-meter data.
+It does not measure what appliances you personally ran today.
+Carbon intensity is an estimate derived from reported generation categories and should be
+used for relative comparisons and timing decisions, not treated as a precise emissions measurement.
+Household profiles are modeled archetypes meant to support interpretation, not real household records.
+""")
