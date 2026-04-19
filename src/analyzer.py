@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def analyze_data(df):
     """Generate basic statistics from dataframe."""
     return {
@@ -9,6 +10,7 @@ def analyze_data(df):
         "numeric_columns": len(df.select_dtypes(include=['number']).columns),
         "missing_values": int(df.isnull().sum().sum())
     }
+
 
 def get_descriptive_stats(df):
     """Get comprehensive descriptive statistics for numeric columns."""
@@ -34,6 +36,7 @@ def get_descriptive_stats(df):
     
     return stats.round(4)
 
+
 def get_data_quality_report(df):
     """Generate comprehensive data quality report."""
     total_cells = df.shape[0] * df.shape[1]
@@ -49,6 +52,7 @@ def get_data_quality_report(df):
         'columns_with_missing': len(missing_by_col),
         'missing_by_column': missing_by_col
     }
+
 
 def detect_time_patterns(df, time_col, value_col, pattern_type='hourly'):
     """Detect and analyze time-based patterns in data."""
@@ -105,6 +109,7 @@ def detect_time_patterns(df, time_col, value_col, pattern_type='hourly'):
         patterns = patterns.sort_values(group_label)
     
     return patterns.round(4)
+
 
 def get_time_aggregations(df, time_col, value_cols, frequency='daily', agg_func='mean'):
     """Aggregate time-series data by specified frequency."""

@@ -6,7 +6,7 @@ from src.analyzer import get_descriptive_stats, get_data_quality_report
 
 st.set_page_config(page_title="Overview", layout="wide", page_icon="📊")
 
-st.title("📊 Data Overview")
+st.title(" Data Overview")
 
 # Get shared data
 df = get_shared_data()
@@ -44,7 +44,7 @@ if selected_columns:
     df_display = df_display[selected_columns]
 
 # Main content
-tab1, tab2, tab3, tab4 = st.tabs(["📋 Data Preview", "📈 Statistics", "📊 Distributions", "🔍 Data Quality"])
+tab1, tab2, tab3 = st.tabs([" Data Preview", " Statistics", " Distributions"])
 
 with tab1:
     st.subheader("Data Preview")
@@ -64,7 +64,7 @@ with tab1:
     # Download option
     csv = df_display.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Download filtered data as CSV",
+        label=" Download filtered data as CSV",
         data=csv,
         file_name="filtered_data.csv",
         mime="text/csv",
@@ -112,27 +112,3 @@ with tab3:
             st.plotly_chart(fig_corr, use_container_width=True)
     else:
         st.info("No numeric columns available for distribution analysis")
-
-with tab4:
-    st.subheader("Data Quality Report")
-    
-    quality_report = get_data_quality_report(df)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.metric("Completeness", f"{quality_report['completeness']:.1f}%")
-        st.metric("Duplicate Rows", quality_report['duplicates'])
-    
-    with col2:
-        st.metric("Total Missing Values", quality_report['total_missing'])
-        st.metric("Columns with Missing Data", quality_report['columns_with_missing'])
-    
-    # Missing values breakdown
-    if quality_report['missing_by_column']:
-        st.subheader("Missing Values by Column")
-        missing_df = pd.DataFrame([
-            {'Column': col, 'Missing Count': count, 'Percentage': f"{(count/len(df)*100):.2f}%"}
-            for col, count in quality_report['missing_by_column'].items()
-        ])
-        st.dataframe(missing_df, use_container_width=True)

@@ -11,12 +11,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("📊 Data Analyzer Dashboard")
+st.title("Data Analyzer Dashboard")
 st.markdown("### A comprehensive tool for exploring and analyzing CSV data")
 
 # Sidebar
 with st.sidebar:
-    st.header("📁 Data Upload")
+    st.header("Data Upload")
     uploaded_file = st.file_uploader("Upload CSV file", type=['csv'])
     
     if uploaded_file:
@@ -27,7 +27,7 @@ with st.sidebar:
             # Store in session state for multi-page access
             set_shared_data(df)
             
-            st.success("✅ File loaded successfully!")
+            st.success(" File loaded successfully!")
             
             # Show basic info
             info = get_data_info(df)
@@ -44,11 +44,11 @@ if df is not None:
     st.markdown("---")
     
     # Quick overview section
-    st.subheader("📋 Quick Overview")
+    st.subheader("Quick Overview")
     
     col1, col2, col3, col4 = st.columns(4)
     
-    Info = get_data_info(df)
+    info = get_data_info(df)
     
     with col1:
         st.metric("Total Rows", f"{info['rows']:,}")
@@ -60,11 +60,11 @@ if df is not None:
         st.metric("DateTime Columns", info['datetime_cols'])
     
     # Data preview
-    st.subheader("🔍 Data Preview")
+    st.subheader(" Data Preview")
     st.dataframe(df.head(10), use_container_width=True)
     
     # Column information
-    st.subheader("📊 Column Information")
+    st.subheader(" Column Information")
     
     col_info = []
     for col in df.columns:
@@ -80,7 +80,7 @@ if df is not None:
     st.dataframe(col_df, use_container_width=True)
     
     # Quick visualization
-    st.subheader("📈 Quick Visualization")
+    st.subheader(" Quick Visualization")
     
     numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
     
@@ -115,13 +115,13 @@ if df is not None:
     
     # Navigation guide
     st.markdown("---")
-    st.subheader("🧭 Navigate to Analysis Pages")
+    st.subheader(" Navigate to Analysis Pages")
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("""
-        **📊 Overview Page**
+        ** Overview Page **
         - Comprehensive data statistics
         - Distribution analysis
         - Correlation heatmaps
@@ -130,14 +130,14 @@ if df is not None:
     
     with col2:
         st.markdown("""
-        **📈 Time Series Page**
+        ** Time Series Page **
         - Interactive time-series plots
         - Pattern analysis (hourly, daily, weekly)
         - Date range filtering
         - Time-based aggregations
         """)
     
-    st.info("👈 Use the sidebar to navigate between pages")
+    st.info("Use the sidebar to navigate between pages")
 
 else:
     # Welcome message when no data is loaded
@@ -147,17 +147,17 @@ else:
     
     with col2:
         st.markdown("""
-        ## 🚀 Getting Started
+        ## Getting Started
         
         1. **Upload your CSV file** using the sidebar
         2. **Explore the data** on this home page
         3. **Navigate** to specialized analysis pages:
-           - 📊 **Overview**: Comprehensive statistics and distributions
-           - 📈 **Time Series**: Temporal pattern analysis
-        
+           -  **Overview**: Comprehensive statistics and distributions
+           -  **Time Series**: Temporal pattern analysis
+    
         ---
         
-        ### ✨ Features
+        ###  Features
         
         - **Interactive Visualizations**: Explore your data with dynamic charts
         - **Statistical Analysis**: Get detailed descriptive statistics
@@ -167,7 +167,7 @@ else:
         
         ---
         
-        ### 📝 Supported Data
+        ###  Supported Data
         
         - CSV files with any structure
         - Numeric, categorical, and datetime columns
